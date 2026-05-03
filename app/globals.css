@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-sumi: #0a0a0a;
+  --color-paper: #f5f5f5;
+  --color-stone: #8a8a8a;
+  --color-charcoal: #141414;
+  --color-line: #2a2a2a;
+  --color-chalk: #ffffff;
+
+  --font-serif: var(--font-eb-garamond), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-jp: var(--font-noto-serif-jp), 'Noto Serif JP', serif;
+
+  --radius-sm: 2px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: var(--color-sumi);
+  color: var(--color-paper);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-paper);
+  color: var(--color-sumi);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
