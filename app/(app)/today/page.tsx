@@ -11,7 +11,13 @@ import { Countdown } from '@/components/countdown';
 import { DayHeader } from '@/components/day-header';
 import { Proverb } from '@/components/proverb';
 import { ResetCard } from '@/components/reset-card';
-import { dismissResetNotice, resetProgram, signOut, toggleChallenge } from './actions';
+import {
+  completeDay,
+  dismissResetNotice,
+  resetProgram,
+  signOut,
+  toggleChallenge,
+} from './actions';
 
 export const metadata = {
   title: 'Today — HIBI 45',
@@ -132,6 +138,7 @@ export default async function TodayPage() {
           <CompletionCard
             dayNumber={dayNumber}
             hoursToMidnight={hoursUntilMidnight(program.timezone)}
+            completeDay={completeDay}
           />
         </div>
       ) : (
