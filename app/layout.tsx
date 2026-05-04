@@ -22,6 +22,9 @@ const notoSerifJp = Noto_Serif_JP({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  ),
   title: 'HIBI 45 — 日々',
   description:
     'A 45-day daily-discipline challenge. Five practices, every day, for forty-five days.',
