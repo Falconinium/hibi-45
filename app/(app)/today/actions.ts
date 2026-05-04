@@ -90,22 +90,20 @@ export async function toggleChallenge(dayNumber: number, challengeIndex: number)
 }
 
 /**
- * Mark the current day complete and advance to the next day immediately.
+ * Acknowledge that the current day is complete (5/5).
  *
- * This is a deliberate departure from CLAUDE.md §6 ("a program's
- * current_day advances when the local-midnight rolls over AND the
- * previous day was completed"). The product feedback was that hitting
- * 5/5 mid-afternoon and waiting 8 hours for "next day" felt unrewarding.
+ * Does NOT advance current_day — that still happens automatically at
+ * local midnight via reconcileForUser() (CLAUDE.md §6). This action
+ * only flips a per-day cookie so the UI can render a "Day N closed"
+ * acknowledgment + a live countdown to 00:01, instead of the bare
+ * completion card.
  *
- * Constraints kept intact:
- *   - 5/5 still required (the action verifies the count server-side).
- *   - The reconcile rule still works: we shift `started_on` backwards by
- *     one day so that `daysSinceStart + 1` matches the new current_day.
- *     Tomorrow's reconcile will see `expectedDay = current_day + 1` and
- *     advance/reset normally based on tomorrow's 5/5 status.
- *   - Day 45 → status = 'completed' (no day 46).
+ * On day 45 the cookie also drives a "Finish the program" action
+ * server-side: we set status='completed' so the dashboard shows the
+ * terminal card. (Day 45 is the only day where acknowledging the
+ * completion changes program state — there is no day 46 to wait for.)
  */
-export async function completeDay(): Promise<void> {
+export async function acknowledgeDay(): Promise<void> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -114,12 +112,12 @@ export async function completeDay(): Promise<void> {
 
   const { data: program } = await supabase
     .from('programs')
-    .select('current_day, started_on, timezone, status')
+    .select('current_day, status')
     .eq('user_id', user.id)
     .single();
   if (!program || program.status !== 'active') return;
 
-  // Defense in depth: re-count completions before allowing the advance.
+  // Defense in depth: re-count completions before accepting acknowledgment.
   const { count } = await supabase
     .from('completions')
     .select('*', { count: 'exact', head: true })
@@ -133,26 +131,15 @@ export async function completeDay(): Promise<void> {
     return;
   }
 
-  // Shift started_on back by one day so the reconcile invariant holds:
-  //   expectedDay = daysSinceStart(started_on, now, tz) + 1 = current_day
-  // After this update, today's local date == new started_on + (current_day - 1).
-  const todayLocal = localTodayISO(new Date(), program.timezone);
-  const todayDate = new Date(`${todayLocal}T00:00:00Z`);
-  const newStartedOn = new Date(todayDate);
-  newStartedOn.setUTCDate(newStartedOn.getUTCDate() - program.current_day);
-  // current_day was N. The new current_day is N+1. We want
-  //   daysSinceStart(newStartedOn, todayLocal) + 1 == N+1
-  //   ⇒ todayDate - newStartedOn = N days
-  const newStartedOnISO = newStartedOn.toISOString().slice(0, 10);
-
-  await supabase
-    .from('programs')
-    .update({
-      current_day: program.current_day + 1,
-      started_on: newStartedOnISO,
-    })
-    .eq('user_id', user.id);
-
+  // Per-day cookie: name encodes the day so a stale cookie from a previous
+  // day can't suppress today's acknowledgment view.
+  const c = await cookies();
+  c.set(`hibi_ack_day_${program.current_day}`, '1', {
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 36, // 36 h — covers any timezone's day boundary
+    path: '/',
+  });
   revalidatePath('/today');
 }
 

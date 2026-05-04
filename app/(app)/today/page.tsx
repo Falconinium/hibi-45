@@ -12,7 +12,7 @@ import { DayHeader } from '@/components/day-header';
 import { Proverb } from '@/components/proverb';
 import { ResetCard } from '@/components/reset-card';
 import {
-  completeDay,
+  acknowledgeDay,
   dismissResetNotice,
   resetProgram,
   signOut,
@@ -83,7 +83,11 @@ export default async function TodayPage() {
     return (
       <main className="min-h-screen px-6 py-10 sm:px-10 sm:py-16 max-w-2xl mx-auto flex flex-col">
         <div className="flex-1 flex items-center justify-center">
-          <CompletionCard dayNumber={45} hoursToMidnight={0} />
+          <CompletionCard
+            dayNumber={45}
+            timezone={program.timezone}
+            acknowledged={true}
+          />
         </div>
         <SignOutFooter />
       </main>
@@ -137,8 +141,9 @@ export default async function TodayPage() {
         <div className="flex-1 flex items-center justify-center">
           <CompletionCard
             dayNumber={dayNumber}
-            hoursToMidnight={hoursUntilMidnight(program.timezone)}
-            completeDay={completeDay}
+            timezone={program.timezone}
+            acknowledged={c.get(`hibi_ack_day_${dayNumber}`)?.value === '1'}
+            acknowledgeDay={acknowledgeDay}
           />
         </div>
       ) : (
@@ -203,17 +208,3 @@ function SignOutFooter() {
   );
 }
 
-function hoursUntilMidnight(tz: string): number {
-  const now = new Date();
-  const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: false,
-  });
-  const parts = Object.fromEntries(fmt.formatToParts(now).map((p) => [p.type, p.value]));
-  const h = parseInt(parts.hour ?? '0', 10);
-  const m = parseInt(parts.minute ?? '0', 10);
-  const minsLeft = 24 * 60 - (h * 60 + m);
-  return Math.max(0, Math.round(minsLeft / 60));
-}

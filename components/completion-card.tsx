@@ -1,66 +1,98 @@
+import { CountdownLive } from './countdown-live';
 import { HankoStamp } from './hanko-stamp';
 
 /**
- * Replaces the dashboard when the day is 5/5. The screen empties — only
- * the kanji 完 in a white circle and a short line of paper-on-sumi prose.
+ * Replaces the dashboard when the day is 5/5.
  *
- * The "Mark day complete" button is a deliberate departure from
- * CLAUDE.md §6 (the spec wanted day advance gated to local-midnight).
- * In practice, hitting 5/5 in the afternoon and waiting 8 h made the
- * end-of-day feel unrewarding — the button restores the satisfaction
- * loop. The reconcile rule still enforces the 5/5 requirement and the
- * 45-day cap server-side; this is purely a UX accelerant.
+ * Two visual states:
+ *   1. Unacknowledged (right after hitting 5/5): hanko + "Day N is closed"
+ *      + button "Mark day complete".
+ *   2. Acknowledged (after the user clicks the button): hanko + "Day N
+ *      terminé" + a live HH:MM:SS countdown to the next local 00:01.
  *
- * On day 45 the button label changes — there is no day 46 to advance
- * into, the action sets status='completed' instead.
+ * The acknowledgment is purely a UI flip via cookie — current_day still
+ * advances at local midnight per CLAUDE.md §6. The button does not skip
+ * any wait; it only changes how the completion is rendered.
+ *
+ * On day 45 there's no countdown — acknowledging marks status='completed'
+ * and the "terminal" branch of this card renders.
  */
+
 type Props = {
   dayNumber: number;
-  hoursToMidnight: number;
+  timezone: string;
+  acknowledged: boolean;
   /** When omitted, the card renders as a terminal state (program completed). */
-  completeDay?: () => Promise<void>;
+  acknowledgeDay?: () => Promise<void>;
 };
 
-export function CompletionCard({ dayNumber, hoursToMidnight, completeDay }: Props) {
+export function CompletionCard({ dayNumber, timezone, acknowledged, acknowledgeDay }: Props) {
   const isFinalDay = dayNumber === 45;
-  const isTerminal = !completeDay;
+  const isTerminal = !acknowledgeDay;
 
+  // Terminal state — program has been marked completed (post day 45).
+  if (isTerminal) {
+    return (
+      <Shell>
+        <div className="space-y-3 max-w-sm">
+          <p className="font-serif text-paper text-2xl">The path is complete.</p>
+          <p className="text-stone text-sm leading-relaxed">
+            Forty-five days walked. The discipline becomes the day.
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
+  // Acknowledged: show the closed-day banner + countdown to next 00:01.
+  if (acknowledged) {
+    return (
+      <Shell>
+        <div className="space-y-3 max-w-sm">
+          <p className="font-jp text-stone text-sm tracking-[0.3em]">完</p>
+          <p className="font-serif text-paper text-2xl">Day {dayNumber} terminé.</p>
+          <p className="text-stone text-sm leading-relaxed">
+            The next day will arrive in
+          </p>
+        </div>
+        <div className="space-y-2">
+          <CountdownLive timezone={timezone} />
+          <p className="text-stone text-xs tracking-widest uppercase">until 00:01</p>
+        </div>
+      </Shell>
+    );
+  }
+
+  // Unacknowledged: hanko + "close the day" button.
+  return (
+    <Shell>
+      <div className="space-y-3 max-w-sm">
+        <p className="font-serif text-paper text-2xl">
+          {isFinalDay ? 'Day 45 is complete.' : `Day ${dayNumber} is closed.`}
+        </p>
+        <p className="text-stone text-sm leading-relaxed">
+          {isFinalDay
+            ? 'Forty-five days. Five practices each. The path was walked.'
+            : 'Five disciplines, done. Mark the day to rest.'}
+        </p>
+      </div>
+      <form action={acknowledgeDay}>
+        <button
+          type="submit"
+          className="inline-block border border-paper py-3 px-8 text-paper text-sm tracking-widest uppercase hover:bg-paper hover:text-sumi transition-colors"
+        >
+          {isFinalDay ? 'Finish the program' : 'Mark day complete'}
+        </button>
+      </form>
+    </Shell>
+  );
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center text-center space-y-10 py-16">
       <HankoStamp size={120} />
-      <div className="space-y-3 max-w-sm">
-        <p className="font-serif text-paper text-2xl">
-          {isTerminal
-            ? 'The path is complete.'
-            : isFinalDay
-              ? 'Day 45 is complete.'
-              : `Day ${dayNumber} is closed.`}
-        </p>
-        <p className="text-stone text-sm leading-relaxed">
-          {isTerminal
-            ? 'Forty-five days walked. The discipline becomes the day.'
-            : isFinalDay
-              ? 'Forty-five days. Five practices each. The path was walked.'
-              : 'Rest now, or step into the next day.'}
-        </p>
-      </div>
-
-      {completeDay && (
-        <form action={completeDay}>
-          <button
-            type="submit"
-            className="inline-block border border-paper py-3 px-8 text-paper text-sm tracking-widest uppercase hover:bg-paper hover:text-sumi transition-colors"
-          >
-            {isFinalDay ? 'Finish the program' : 'Mark day complete'}
-          </button>
-        </form>
-      )}
-
-      {completeDay && !isFinalDay && hoursToMidnight > 0 && (
-        <p className="text-stone text-xs tabular tracking-widest uppercase">
-          or wait {hoursToMidnight} hour{hoursToMidnight === 1 ? '' : 's'} for midnight
-        </p>
-      )}
+      {children}
     </div>
   );
 }
