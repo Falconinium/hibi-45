@@ -104,13 +104,21 @@ export async function applyReconciliation(
     return;
   }
 
-  // reset
+  // reset: bump reset_count, restart at day 1, log the failure.
+  const { data: current } = await supabase
+    .from('programs')
+    .select('reset_count')
+    .eq('user_id', userId)
+    .single();
+  const nextResetCount = (current?.reset_count ?? 0) + 1;
+
   const { error: resetErr } = await supabase
     .from('programs')
     .update({
       current_day: 1,
       started_on: decision.newStartedOn,
       status: 'active',
+      reset_count: nextResetCount,
     })
     .eq('user_id', userId);
   if (resetErr) throw resetErr;
