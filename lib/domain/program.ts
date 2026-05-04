@@ -136,8 +136,18 @@ export async function reconcileForUser(
   if (error) throw error;
   if (!program) return { kind: 'noop' };
 
-  const yesterdayCount = await countCompletions(supabase, userId, program.current_day);
-  const decision = reconcileProgram(program, yesterdayCount, now);
+  // status is `text` in Postgres with a CHECK constraint (see 0001_init.sql),
+  // so the runtime values are guaranteed to be one of the three. TS can't see
+  // the CHECK constraint, hence the narrowing here.
+  const state: ProgramState = {
+    current_day: program.current_day,
+    started_on: program.started_on,
+    timezone: program.timezone,
+    status: program.status as ProgramState['status'],
+  };
+
+  const yesterdayCount = await countCompletions(supabase, userId, state.current_day);
+  const decision = reconcileProgram(state, yesterdayCount, now);
   await applyReconciliation(supabase, userId, decision);
   return decision;
 }
