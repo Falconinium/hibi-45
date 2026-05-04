@@ -83,11 +83,7 @@ export default async function TodayPage() {
     return (
       <main className="min-h-screen px-6 py-10 sm:px-10 sm:py-16 max-w-2xl mx-auto flex flex-col">
         <div className="flex-1 flex items-center justify-center">
-          <CompletionCard
-            dayNumber={45}
-            timezone={program.timezone}
-            acknowledged={true}
-          />
+          <CompletionCard kind="program-completed" />
         </div>
         <SignOutFooter />
       </main>
@@ -115,6 +111,11 @@ export default async function TodayPage() {
   const completedCount = checked.size;
   const isFiveOfFive = completedCount === 5;
 
+  // The user has tapped "Mark day complete" — switch to countdown view.
+  // Only meaningful when isFiveOfFive (the action enforces it server-side).
+  const acknowledged =
+    isFiveOfFive && c.get(`hibi_ack_day_${dayNumber}`)?.value === '1';
+
   // Localized date string for the header.
   const { year, month, day } = localDateParts(new Date(), program.timezone);
   const dateLabel = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', {
@@ -137,13 +138,12 @@ export default async function TodayPage() {
         <Proverb proverb={proverb} />
       </div>
 
-      {isFiveOfFive ? (
+      {acknowledged ? (
         <div className="flex-1 flex items-center justify-center">
           <CompletionCard
+            kind="day-acknowledged"
             dayNumber={dayNumber}
             timezone={program.timezone}
-            acknowledged={c.get(`hibi_ack_day_${dayNumber}`)?.value === '1'}
-            acknowledgeDay={acknowledgeDay}
           />
         </div>
       ) : (
@@ -162,9 +162,21 @@ export default async function TodayPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-6 text-stone text-xs tabular tracking-widest uppercase">
-            {completedCount} / 5
-          </p>
+
+          <div className="mt-8 flex items-center justify-between gap-4">
+            <p className="text-stone text-xs tabular tracking-widest uppercase">
+              {completedCount} / 5
+            </p>
+            <form action={acknowledgeDay}>
+              <button
+                type="submit"
+                disabled={!isFiveOfFive}
+                className="border py-3 px-8 text-sm tracking-widest uppercase transition-colors disabled:cursor-not-allowed disabled:border-line disabled:text-stone enabled:border-paper enabled:text-paper enabled:hover:bg-paper enabled:hover:text-sumi"
+              >
+                {dayNumber === 45 ? 'Finish the program' : 'Mark day complete'}
+              </button>
+            </form>
+          </div>
         </section>
       )}
 

@@ -2,36 +2,26 @@ import { CountdownLive } from './countdown-live';
 import { HankoStamp } from './hanko-stamp';
 
 /**
- * Replaces the dashboard when the day is 5/5.
+ * After-state for a closed day or a completed program.
  *
- * Two visual states:
- *   1. Unacknowledged (right after hitting 5/5): hanko + "Day N is closed"
- *      + button "Mark day complete".
- *   2. Acknowledged (after the user clicks the button): hanko + "Day N
- *      terminé" + a live HH:MM:SS countdown to the next local 00:01.
+ * Two distinct shapes:
+ *   - Day acknowledged on an active program: hanko + "Day N terminé" +
+ *     live HH:MM:SS countdown to next local 00:01. The reconcile that
+ *     actually advances the day still fires at midnight (CLAUDE.md §6).
+ *   - Program completed (status === 'completed'): hanko + "The path is
+ *     complete." — terminal, no countdown.
  *
- * The acknowledgment is purely a UI flip via cookie — current_day still
- * advances at local midnight per CLAUDE.md §6. The button does not skip
- * any wait; it only changes how the completion is rendered.
- *
- * On day 45 there's no countdown — acknowledging marks status='completed'
- * and the "terminal" branch of this card renders.
+ * The "Mark day complete" button lives on the today page itself, beneath
+ * the 5 challenges, so it visually anchors to the act of checking the
+ * last box. This component is purely the after-state.
  */
 
-type Props = {
-  dayNumber: number;
-  timezone: string;
-  acknowledged: boolean;
-  /** When omitted, the card renders as a terminal state (program completed). */
-  acknowledgeDay?: () => Promise<void>;
-};
+type Props =
+  | { kind: 'day-acknowledged'; dayNumber: number; timezone: string }
+  | { kind: 'program-completed' };
 
-export function CompletionCard({ dayNumber, timezone, acknowledged, acknowledgeDay }: Props) {
-  const isFinalDay = dayNumber === 45;
-  const isTerminal = !acknowledgeDay;
-
-  // Terminal state — program has been marked completed (post day 45).
-  if (isTerminal) {
+export function CompletionCard(props: Props) {
+  if (props.kind === 'program-completed') {
     return (
       <Shell>
         <div className="space-y-3 max-w-sm">
@@ -44,46 +34,21 @@ export function CompletionCard({ dayNumber, timezone, acknowledged, acknowledgeD
     );
   }
 
-  // Acknowledged: show the closed-day banner + countdown to next 00:01.
-  if (acknowledged) {
-    return (
-      <Shell>
-        <div className="space-y-3 max-w-sm">
-          <p className="font-jp text-stone text-sm tracking-[0.3em]">完</p>
-          <p className="font-serif text-paper text-2xl">Day {dayNumber} terminé.</p>
-          <p className="text-stone text-sm leading-relaxed">
-            The next day will arrive in
-          </p>
-        </div>
-        <div className="space-y-2">
-          <CountdownLive timezone={timezone} />
-          <p className="text-stone text-xs tracking-widest uppercase">until 00:01</p>
-        </div>
-      </Shell>
-    );
-  }
-
-  // Unacknowledged: hanko + "close the day" button.
   return (
     <Shell>
       <div className="space-y-3 max-w-sm">
+        <p className="font-jp text-stone text-sm tracking-[0.3em]">完</p>
         <p className="font-serif text-paper text-2xl">
-          {isFinalDay ? 'Day 45 is complete.' : `Day ${dayNumber} is closed.`}
+          Day {props.dayNumber} terminé.
         </p>
         <p className="text-stone text-sm leading-relaxed">
-          {isFinalDay
-            ? 'Forty-five days. Five practices each. The path was walked.'
-            : 'Five disciplines, done. Mark the day to rest.'}
+          The next day will arrive in
         </p>
       </div>
-      <form action={acknowledgeDay}>
-        <button
-          type="submit"
-          className="inline-block border border-paper py-3 px-8 text-paper text-sm tracking-widest uppercase hover:bg-paper hover:text-sumi transition-colors"
-        >
-          {isFinalDay ? 'Finish the program' : 'Mark day complete'}
-        </button>
-      </form>
+      <div className="space-y-2">
+        <CountdownLive timezone={props.timezone} />
+        <p className="text-stone text-xs tracking-widest uppercase">until 00:01</p>
+      </div>
     </Shell>
   );
 }
