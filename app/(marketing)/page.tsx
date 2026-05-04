@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { CATEGORIES } from '@/lib/challenges/catalog';
 import { Proverb } from '@/components/proverb';
-import { EtherealShadow } from '@/components/ui/etheral-shadow';
+import { EtherealShadowResponsive } from '@/components/ui/etheral-shadow-responsive';
 
 export const metadata = {
   title: 'HIBI 45 — 日々',
@@ -67,12 +67,7 @@ function Hero() {
   return (
     <section className="relative isolate min-h-screen overflow-hidden flex items-center justify-center pt-14">
       <div className="absolute inset-0 -z-10">
-        <EtherealShadow
-          color="rgba(245, 245, 245, 0.18)"
-          animation={{ scale: 100, speed: 90 }}
-          noise={{ opacity: 0.6, scale: 1.2 }}
-          sizing="fill"
-        />
+        <EtherealShadowResponsive variant="hero" />
       </div>
 
       <div className="relative z-10 px-6 sm:px-8 max-w-3xl mx-auto text-center space-y-10">
@@ -226,12 +221,7 @@ function FinalCTA() {
   return (
     <section className="relative isolate overflow-hidden py-32 sm:py-40 px-6 sm:px-8">
       <div className="absolute inset-0 -z-10 opacity-60">
-        <EtherealShadow
-          color="rgba(138, 138, 138, 0.3)"
-          animation={{ scale: 70, speed: 60 }}
-          noise={{ opacity: 0.4, scale: 1.5 }}
-          sizing="fill"
-        />
+        <EtherealShadowResponsive variant="cta" />
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto text-center space-y-10">

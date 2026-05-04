@@ -28,6 +28,8 @@ interface ShadowOverlayProps {
   color?: string;
   animation?: AnimationConfig;
   noise?: NoiseConfig;
+  /** Blur applied on top of the SVG filter. Default 4 (px). Use 0–2 on mobile. */
+  blurAmount?: number;
   style?: CSSProperties;
   className?: string;
 }
@@ -63,6 +65,7 @@ export function EtherealShadow({
   color = 'rgba(128, 128, 128, 1)',
   animation,
   noise,
+  blurAmount = 4,
   style,
   className,
 }: ShadowOverlayProps) {
@@ -112,7 +115,11 @@ export function EtherealShadow({
         style={{
           position: 'absolute',
           inset: -displacementScale,
-          filter: animationEnabled ? `url(#${id}) blur(4px)` : 'none',
+          filter: animationEnabled
+            ? blurAmount > 0
+              ? `url(#${id}) blur(${blurAmount}px)`
+              : `url(#${id})`
+            : 'none',
         }}
       >
         {animationEnabled && animation && (
