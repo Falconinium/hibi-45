@@ -29,6 +29,15 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* When launched as a PWA on iOS with viewport-fit=cover, content paints
+   under the notch and the home-bar. Apply safe-area padding to the body
+   so screens with top-aligned content (the auth pages, the today header)
+   don't clip on devices with a notch. */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 ::selection {
   background: var(--color-paper);
   color: var(--color-sumi);
