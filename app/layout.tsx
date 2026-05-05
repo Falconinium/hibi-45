@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { EB_Garamond, Inter, Noto_Serif_JP } from 'next/font/google';
 import './globals.css';
 
@@ -28,6 +28,24 @@ export const metadata: Metadata = {
   title: 'HIBI 45 — 日々',
   description:
     'A 45-day daily-discipline challenge. Five practices, every day, for forty-five days.',
+  applicationName: 'HIBI 45',
+  appleWebApp: {
+    capable: true,
+    title: 'HIBI 45',
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#0a0a0a',
+  width: 'device-width',
+  initialScale: 1,
+  // Lets the app paint behind the iOS status bar/notch when launched
+  // from the home screen (matches statusBarStyle: 'black-translucent').
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
