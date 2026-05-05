@@ -5,7 +5,7 @@ import { reconcileForUser } from '@/lib/domain/program';
 import { localDateParts } from '@/lib/domain/timezone';
 import { CHALLENGES } from '@/lib/challenges/catalog';
 import { PROVERBS } from '@/lib/challenges/proverbs';
-import { ChallengeRow } from '@/components/challenge-row';
+import { ChallengeList } from '@/components/challenge-list';
 import { CompletionCard } from '@/components/completion-card';
 import { Countdown } from '@/components/countdown';
 import { DayHeader } from '@/components/day-header';
@@ -35,7 +35,7 @@ const MILESTONE_DAYS = new Set([7, 14, 21, 28, 35, 40, 45]);
  *   4. If status === 'completed' → 完 forever.
  *   5. Otherwise render the dashboard for the current day.
  *
- * No client state library. The only client islands are <ChallengeRow>
+ * No client state library. The only client islands are <ChallengeList>
  * (optimistic toggle) and <Countdown> (re-renders every minute).
  */
 export default async function TodayPage() {
@@ -108,13 +108,11 @@ export default async function TodayPage() {
     .eq('day_number', dayNumber);
 
   const checked = new Set((completions ?? []).map((r) => r.challenge_index));
-  const completedCount = checked.size;
-  const isFiveOfFive = completedCount === 5;
 
   // The user has tapped "Mark day complete" — switch to countdown view.
-  // Only meaningful when isFiveOfFive (the action enforces it server-side).
+  // Only meaningful when checked.size === 5 (the action enforces it server-side).
   const acknowledged =
-    isFiveOfFive && c.get(`hibi_ack_day_${dayNumber}`)?.value === '1';
+    checked.size === 5 && c.get(`hibi_ack_day_${dayNumber}`)?.value === '1';
 
   // Localized date string for the header.
   const { year, month, day } = localDateParts(new Date(), program.timezone);
@@ -148,35 +146,14 @@ export default async function TodayPage() {
         </div>
       ) : (
         <section className="mt-12 flex-1">
-          <ul>
-            {challenges.map((challenge, i) => (
-              <li key={i}>
-                <ChallengeRow
-                  dayNumber={dayNumber}
-                  challengeIndex={i}
-                  category={challenge.category}
-                  text={challenge.text}
-                  initialChecked={checked.has(i)}
-                  toggle={toggleChallenge}
-                />
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-8 flex items-center justify-between gap-4">
-            <p className="text-stone text-xs tabular tracking-widest uppercase">
-              {completedCount} / 5
-            </p>
-            <form action={acknowledgeDay}>
-              <button
-                type="submit"
-                disabled={!isFiveOfFive}
-                className="border py-3 px-8 text-sm tracking-widest uppercase transition-colors disabled:cursor-not-allowed disabled:border-line disabled:text-stone enabled:border-paper enabled:text-paper enabled:hover:bg-paper enabled:hover:text-sumi"
-              >
-                {dayNumber === 45 ? 'Finish the program' : 'Mark day complete'}
-              </button>
-            </form>
-          </div>
+          <ChallengeList
+            dayNumber={dayNumber}
+            challenges={challenges}
+            initialChecked={[...checked]}
+            isFinalDay={dayNumber === 45}
+            toggle={toggleChallenge}
+            acknowledge={acknowledgeDay}
+          />
         </section>
       )}
 

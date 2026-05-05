@@ -37,3 +37,57 @@ body {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Day-acknowledged transitions — slow, breath-like, sequential.
+   Used by components/completion-card.tsx. */
+@keyframes hibi-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hibi-stamp-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) rotate(-8deg);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.hibi-anim-stamp {
+  animation: hibi-stamp-in 700ms ease-out both;
+}
+
+.hibi-anim-fade {
+  animation: hibi-fade-in 600ms ease-out both;
+}
+
+.hibi-anim-fade-delay-1 {
+  animation: hibi-fade-in 600ms ease-out both;
+  animation-delay: 200ms;
+}
+
+.hibi-anim-fade-delay-2 {
+  animation: hibi-fade-in 600ms ease-out both;
+  animation-delay: 400ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hibi-anim-stamp,
+  .hibi-anim-fade,
+  .hibi-anim-fade-delay-1,
+  .hibi-anim-fade-delay-2 {
+    animation: none;
+  }
+}
