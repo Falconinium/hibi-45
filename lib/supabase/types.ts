@@ -39,6 +39,7 @@ export type Database = {
         Row: {
           created_at: string
           current_day: number
+          last_completed_day: number
           reset_count: number
           started_on: string
           status: string
@@ -49,6 +50,7 @@ export type Database = {
         Insert: {
           created_at?: string
           current_day?: number
+          last_completed_day?: number
           reset_count?: number
           started_on: string
           status?: string
@@ -59,6 +61,7 @@ export type Database = {
         Update: {
           created_at?: string
           current_day?: number
+          last_completed_day?: number
           reset_count?: number
           started_on?: string
           status?: string
