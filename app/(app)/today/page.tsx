@@ -49,7 +49,7 @@ export default async function TodayPage() {
 
   const { data: programRow, error: progErr } = await supabase
     .from('programs')
-    .select('current_day, started_on, timezone, status, reset_count')
+    .select('current_day, started_on, timezone, status, reset_count, last_completed_day')
     .eq('user_id', user.id)
     .single();
   if (progErr || !programRow) redirect('/sign-in');
@@ -60,6 +60,7 @@ export default async function TodayPage() {
     timezone: programRow.timezone,
     status: programRow.status as 'active' | 'completed' | 'reset',
     reset_count: programRow.reset_count,
+    last_completed_day: programRow.last_completed_day,
   };
 
   // Reset notice: show once after a reset, then a cookie dismisses it.
@@ -109,10 +110,10 @@ export default async function TodayPage() {
 
   const checked = new Set((completions ?? []).map((r) => r.challenge_index));
 
-  // The user has tapped "Mark day complete" — switch to countdown view.
-  // Only meaningful when checked.size === 5 (the action enforces it server-side).
-  const acknowledged =
-    checked.size === 5 && c.get(`hibi_ack_day_${dayNumber}`)?.value === '1';
+  // The user has tapped "Mark day complete" — DB is the source of truth
+  // (programs.last_completed_day). When this matches current_day, render
+  // the post-ack view (Day N closed + countdown).
+  const acknowledged = program.last_completed_day === program.current_day;
 
   // Localized date string for the header.
   const { year, month, day } = localDateParts(new Date(), program.timezone);

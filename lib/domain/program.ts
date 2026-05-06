@@ -15,15 +15,21 @@ import type { Database } from '@/lib/supabase/types';
  *   - applyReconciliation() / reconcileForUser(): IO layer that reads the
  *     program row + completion count and applies the decision.
  *
- * Rule (CLAUDE.md §6):
+ * Rule (revised — supersedes CLAUDE.md §6 "yesterday 5/5"):
+ *   A day is considered "completed" ONLY when the user has explicitly
+ *   clicked "Mark day complete", which sets programs.last_completed_day
+ *   to the current_day. Silently checking the 5 boxes without acknowledging
+ *   does NOT count: at midnight, such a user resets just like one who
+ *   checked four. The click is the act of closing the day.
+ *
  *   expectedDay = daysSinceStart(started_on, now, tz) + 1
  *
- *   - expectedDay <  current_day                     → no-op (clock skew)
- *   - expectedDay === current_day                    → no-op
- *   - expectedDay === current_day + 1, yesterday 5/5 → advance
+ *   - expectedDay <  current_day                              → noop (clock skew)
+ *   - expectedDay === current_day                             → noop
+ *   - expectedDay === current_day + 1, last_completed=current → advance
  *     (or, if current_day was 45, → complete)
- *   - expectedDay === current_day + 1, yesterday <5  → reset
- *   - expectedDay >  current_day + 1                 → reset (skipped a day)
+ *   - expectedDay === current_day + 1, last_completed<current → reset
+ *   - expectedDay >  current_day + 1                          → reset (skipped)
  */
 
 export type ProgramState = {
@@ -31,6 +37,7 @@ export type ProgramState = {
   started_on: string; // YYYY-MM-DD in user's tz
   timezone: string;
   status: 'active' | 'completed' | 'reset';
+  last_completed_day: number; // 0 if no day has been explicitly acknowledged yet
 };
 
 export type ReconciliationDecision =
@@ -40,11 +47,7 @@ export type ReconciliationDecision =
   | { kind: 'complete' };
 
 /** Pure decision function. */
-export function reconcileProgram(
-  program: ProgramState,
-  yesterdayCount: number,
-  now: Date,
-): ReconciliationDecision {
+export function reconcileProgram(program: ProgramState, now: Date): ReconciliationDecision {
   if (program.status !== 'active') return { kind: 'noop' };
 
   const expectedDay = daysSinceStart(program.started_on, now, program.timezone) + 1;
@@ -53,7 +56,10 @@ export function reconcileProgram(
     return { kind: 'noop' };
   }
 
-  if (expectedDay === program.current_day + 1 && yesterdayCount >= 5) {
+  // The user must have explicitly acknowledged current_day to advance.
+  const acknowledged = program.last_completed_day === program.current_day;
+
+  if (expectedDay === program.current_day + 1 && acknowledged) {
     if (program.current_day === 45) return { kind: 'complete' };
     return { kind: 'advance', toDay: program.current_day + 1 };
   }
@@ -67,16 +73,6 @@ export function reconcileProgram(
 
 /** Type alias used by all IO helpers below. */
 type DB = SupabaseClient<Database>;
-
-async function countCompletions(supabase: DB, userId: string, dayNumber: number): Promise<number> {
-  const { count, error } = await supabase
-    .from('completions')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('day_number', dayNumber);
-  if (error) throw error;
-  return count ?? 0;
-}
 
 /** Apply a reconciliation decision. Pure IO; no business logic. */
 export async function applyReconciliation(
@@ -119,6 +115,7 @@ export async function applyReconciliation(
       started_on: decision.newStartedOn,
       status: 'active',
       reset_count: nextResetCount,
+      last_completed_day: 0,
     })
     .eq('user_id', userId);
   if (resetErr) throw resetErr;
@@ -138,7 +135,7 @@ export async function reconcileForUser(
 ): Promise<ReconciliationDecision> {
   const { data: program, error } = await supabase
     .from('programs')
-    .select('current_day, started_on, timezone, status')
+    .select('current_day, started_on, timezone, status, last_completed_day')
     .eq('user_id', userId)
     .single();
   if (error) throw error;
@@ -152,10 +149,10 @@ export async function reconcileForUser(
     started_on: program.started_on,
     timezone: program.timezone,
     status: program.status as ProgramState['status'],
+    last_completed_day: program.last_completed_day,
   };
 
-  const yesterdayCount = await countCompletions(supabase, userId, state.current_day);
-  const decision = reconcileProgram(state, yesterdayCount, now);
+  const decision = reconcileProgram(state, now);
   await applyReconciliation(supabase, userId, decision);
   return decision;
 }

@@ -92,16 +92,17 @@ export async function toggleChallenge(dayNumber: number, challengeIndex: number)
 /**
  * Acknowledge that the current day is complete (5/5).
  *
- * Does NOT advance current_day — that still happens automatically at
- * local midnight via reconcileForUser() (CLAUDE.md §6). This action
- * only flips a per-day cookie so the UI can render a "Day N closed"
- * acknowledgment + a live countdown to 00:01, instead of the bare
- * completion card.
+ * Writes programs.last_completed_day = current_day. This is now the
+ * SINGLE signal that a day was actually closed by the user. Reconcile
+ * compares last_completed_day to current_day at midnight to decide
+ * advance vs reset — silently checking 5 boxes is no longer enough.
  *
- * On day 45 the cookie also drives a "Finish the program" action
- * server-side: we set status='completed' so the dashboard shows the
- * terminal card. (Day 45 is the only day where acknowledging the
- * completion changes program state — there is no day 46 to wait for.)
+ * Also sets a UI cookie so the page can render the post-acknowledgment
+ * view immediately on subsequent loads without re-reading the DB column
+ * for the visible state. The DB column remains the source of truth;
+ * the cookie is purely an optimization.
+ *
+ * On day 45 we additionally set status='completed' — there is no day 46.
  */
 export async function acknowledgeDay(): Promise<void> {
   const supabase = await createClient();
@@ -112,12 +113,18 @@ export async function acknowledgeDay(): Promise<void> {
 
   const { data: program } = await supabase
     .from('programs')
-    .select('current_day, status')
+    .select('current_day, status, last_completed_day')
     .eq('user_id', user.id)
     .single();
   if (!program || program.status !== 'active') return;
 
-  // Defense in depth: re-count completions before accepting acknowledgment.
+  // Idempotent: re-clicking on an already-acked day is a noop.
+  if (program.last_completed_day >= program.current_day) {
+    revalidatePath('/today');
+    return;
+  }
+
+  // Defense in depth: re-count completions before accepting the ack.
   const { count } = await supabase
     .from('completions')
     .select('*', { count: 'exact', head: true })
@@ -125,21 +132,12 @@ export async function acknowledgeDay(): Promise<void> {
     .eq('day_number', program.current_day);
   if ((count ?? 0) < 5) return;
 
-  if (program.current_day === 45) {
-    await supabase.from('programs').update({ status: 'completed' }).eq('user_id', user.id);
-    revalidatePath('/today');
-    return;
-  }
+  const updates: { last_completed_day: number; status?: 'completed' } = {
+    last_completed_day: program.current_day,
+  };
+  if (program.current_day === 45) updates.status = 'completed';
 
-  // Per-day cookie: name encodes the day so a stale cookie from a previous
-  // day can't suppress today's acknowledgment view.
-  const c = await cookies();
-  c.set(`hibi_ack_day_${program.current_day}`, '1', {
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 36, // 36 h — covers any timezone's day boundary
-    path: '/',
-  });
+  await supabase.from('programs').update(updates).eq('user_id', user.id);
   revalidatePath('/today');
 }
 
@@ -170,6 +168,7 @@ export async function resetProgram(): Promise<void> {
       started_on: newStartedOn,
       status: 'active',
       reset_count: program.reset_count + 1,
+      last_completed_day: 0,
     })
     .eq('user_id', user.id);
 
