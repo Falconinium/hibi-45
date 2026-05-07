@@ -100,7 +100,17 @@ export async function applyReconciliation(
     return;
   }
 
-  // reset: bump reset_count, restart at day 1, log the failure.
+  // reset: wipe all completions, bump reset_count, restart at day 1, log.
+  // Deleting completions matches the 75-hard-style strict mode (CLAUDE.md
+  // intro): a reset rends the slate blank. Otherwise, completions from
+  // before the reset would shadow the new attempt's day numbers and the
+  // user would see ghost checks on a brand-new Day 1.
+  const { error: delErr } = await supabase
+    .from('completions')
+    .delete()
+    .eq('user_id', userId);
+  if (delErr) throw delErr;
+
   const { data: current } = await supabase
     .from('programs')
     .select('reset_count')

@@ -161,6 +161,11 @@ export async function resetProgram(): Promise<void> {
 
   const newStartedOn = localTodayISO(new Date(), program.timezone);
 
+  // Wipe all completions before resetting the program — same as the auto
+  // reset path in applyReconciliation. Otherwise leftover rows from the
+  // previous attempt would appear pre-checked on the new Day 1.
+  await supabase.from('completions').delete().eq('user_id', user.id);
+
   await supabase
     .from('programs')
     .update({
