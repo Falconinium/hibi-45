@@ -73,7 +73,7 @@ function Hero() {
           alt=""
           fill
           priority
-          placeholder="blur"
+          quality={95}
           sizes="100vw"
           className="object-cover object-center"
         />
@@ -237,8 +237,8 @@ function FinalCTA() {
           src={heroBg}
           alt=""
           fill
+          quality={95}
           sizes="100vw"
-          placeholder="blur"
           className="object-cover object-center"
         />
         {/* Heavier veil for the final CTA — the type sits closer to the
