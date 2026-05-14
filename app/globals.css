@@ -19,6 +19,12 @@
   color-scheme: dark;
 }
 
+html {
+  /* Smooth in-page anchor jumps (landing's "How it works" CTA, future
+     intra-doc links). Honors prefers-reduced-motion automatically. */
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   background-color: var(--color-sumi);

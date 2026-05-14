@@ -122,7 +122,10 @@ function Hero() {
 
 function FiveDisciplines() {
   return (
-    <section id="how" className="py-24 sm:py-32 px-6 sm:px-8 max-w-6xl mx-auto">
+    <section
+      id="how"
+      className="py-24 sm:py-32 px-6 sm:px-8 max-w-6xl mx-auto scroll-mt-14"
+    >
       <header className="max-w-2xl mb-16 sm:mb-20 space-y-4">
         <p className="font-jp text-stone text-xs tracking-[0.3em]">五つの道</p>
         <h2 className="font-serif text-paper text-4xl sm:text-5xl leading-tight">
