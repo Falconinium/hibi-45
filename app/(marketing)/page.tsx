@@ -1,7 +1,8 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { CATEGORIES } from '@/lib/challenges/catalog';
 import { Proverb } from '@/components/proverb';
-import { EtherealShadowResponsive } from '@/components/ui/etheral-shadow-responsive';
+import heroBg from '@/public/images/hero-bg.png';
 
 export const metadata = {
   title: 'HIBI 45 — 日々',
@@ -67,7 +68,18 @@ function Hero() {
   return (
     <section className="relative isolate min-h-screen overflow-hidden flex items-center justify-center pt-14">
       <div className="absolute inset-0 -z-10">
-        <EtherealShadowResponsive variant="hero" />
+        <Image
+          src={heroBg}
+          alt=""
+          fill
+          priority
+          placeholder="blur"
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        {/* Sumi veil — keeps the foreground text legible on any patch
+            of the image and binds the photo to the design palette. */}
+        <div className="absolute inset-0 bg-sumi/55" />
       </div>
 
       <div className="relative z-10 px-6 sm:px-8 max-w-3xl mx-auto text-center space-y-10">
@@ -220,8 +232,18 @@ function SampleDay() {
 function FinalCTA() {
   return (
     <section className="relative isolate overflow-hidden py-32 sm:py-40 px-6 sm:px-8">
-      <div className="absolute inset-0 -z-10 opacity-60">
-        <EtherealShadowResponsive variant="cta" />
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src={heroBg}
+          alt=""
+          fill
+          sizes="100vw"
+          placeholder="blur"
+          className="object-cover object-center"
+        />
+        {/* Heavier veil for the final CTA — the type sits closer to the
+            center of the image and needs more contrast than the hero. */}
+        <div className="absolute inset-0 bg-sumi/75" />
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto text-center space-y-10">
