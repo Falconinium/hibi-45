@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { CATEGORIES } from '@/lib/challenges/catalog';
+import { CATEGORIES, CHALLENGES, type Category } from '@/lib/challenges/catalog';
 import { Proverb } from '@/components/proverb';
 import heroBg from '@/public/images/hero-bg.png';
 
@@ -30,6 +30,7 @@ export default function LandingPage() {
       <Nav />
       <Hero />
       <FiveDisciplines />
+      <Arc />
       <TwoUp />
       <SampleDay />
       <FinalCTA />
@@ -151,6 +152,77 @@ function FiveDisciplines() {
           ),
         )}
       </ul>
+    </section>
+  );
+}
+
+/**
+ * Progression arc — shows Day 1 → Day 45 side by side for each discipline.
+ * Content pulled directly from CHALLENGES[0] and CHALLENGES[44]; the
+ * landing has no duplicated copy and any future edit to the catalog
+ * shows here automatically.
+ */
+function Arc() {
+  const day1 = CHALLENGES[0];
+  const day45 = CHALLENGES[44];
+
+  return (
+    <section className="py-24 sm:py-32 px-6 sm:px-8 max-w-6xl mx-auto border-t border-line">
+      <header className="max-w-2xl mb-16 sm:mb-20 space-y-4">
+        <p className="font-jp text-stone text-xs tracking-[0.3em]">道のり</p>
+        <h2 className="font-serif text-paper text-4xl sm:text-5xl leading-tight">
+          What forty-five days do.
+        </h2>
+        <p className="text-stone text-base leading-relaxed max-w-lg">
+          The same five practices. Forty-five times. Each day a little heavier
+          than the last — small enough to keep, large enough to leave a mark.
+        </p>
+      </header>
+
+      <ol className="space-y-px bg-line">
+        {day1.map((d1, i) => {
+          const d45 = day45[i];
+          const cat = CATEGORIES[d1.category as Category];
+          return (
+            <li
+              key={i}
+              className="bg-sumi grid grid-cols-1 md:grid-cols-[auto_1fr_1fr] gap-4 md:gap-10 p-6 sm:p-8"
+            >
+              <div className="flex md:flex-col md:items-start items-baseline gap-3 md:gap-2 md:w-28">
+                <span className="font-jp text-paper text-3xl leading-none">
+                  {cat.kanji}
+                </span>
+                <span className="text-stone text-xs tracking-widest uppercase">
+                  {cat.label}
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-stone text-xs tabular tracking-widest uppercase">
+                  Day 01
+                </p>
+                <p className="font-serif text-paper text-base sm:text-lg leading-snug">
+                  {d1.text}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-stone text-xs tabular tracking-widest uppercase">
+                  Day 45
+                </p>
+                <p className="font-serif text-paper text-base sm:text-lg leading-snug">
+                  {d45.text}
+                </p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <p className="mt-12 text-stone text-sm italic leading-relaxed max-w-xl">
+        Between these two columns lie forty-three quiet days. The path is what
+        carries you across.
+      </p>
     </section>
   );
 }
