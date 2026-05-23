@@ -21,13 +21,16 @@ const notoSerifJp = Noto_Serif_JP({
   display: 'swap',
 });
 
+const SHARE_TITLE = 'HIBI 45 — 日々';
+const SHARE_DESCRIPTION =
+  'Forty-five days. Five practices each day. Miss one, and the path begins again.';
+
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   ),
-  title: 'HIBI 45 — 日々',
-  description:
-    'A 45-day daily-discipline challenge. Five practices, every day, for forty-five days.',
+  title: SHARE_TITLE,
+  description: SHARE_DESCRIPTION,
   applicationName: 'HIBI 45',
   appleWebApp: {
     capable: true,
@@ -36,6 +39,23 @@ export const metadata: Metadata = {
   },
   formatDetection: {
     telephone: false,
+  },
+  // Next auto-discovers app/opengraph-image.tsx and adds the og:image tag,
+  // but we set explicit title/description/locale here too so scrapers that
+  // ignore the auto-discovery (Slack v1, older Discord) still get a rich
+  // unfurl. X requires twitter.card='summary_large_image' to render the
+  // full 1200×630 card instead of a tiny thumbnail.
+  openGraph: {
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
+    siteName: 'HIBI 45',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SHARE_TITLE,
+    description: SHARE_DESCRIPTION,
   },
 };
 
