@@ -41,6 +41,7 @@ export type Database = {
           current_day: number
           last_completed_day: number
           reset_count: number
+          signed_at: string | null
           started_on: string
           status: string
           timezone: string
@@ -52,6 +53,7 @@ export type Database = {
           current_day?: number
           last_completed_day?: number
           reset_count?: number
+          signed_at?: string | null
           started_on: string
           status?: string
           timezone: string
@@ -63,6 +65,7 @@ export type Database = {
           current_day?: number
           last_completed_day?: number
           reset_count?: number
+          signed_at?: string | null
           started_on?: string
           status?: string
           timezone?: string
