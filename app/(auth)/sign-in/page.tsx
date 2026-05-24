@@ -14,18 +14,21 @@ export default function SignInPage({
   return (
     <div className="space-y-10">
       <header className="space-y-2">
-        <h1 className="font-serif text-3xl text-paper">Welcome back.</h1>
-        <p className="text-stone text-sm">Sign in to continue the path.</p>
+        <p className="font-jp text-stone text-xs tracking-[0.3em]">帰参</p>
+        <h1 className="font-serif text-3xl text-paper">Return to the path.</h1>
+        <p className="text-stone text-sm">
+          The temple is open. We have kept your place.
+        </p>
       </header>
 
       <CheckEmailNotice searchParams={searchParams} />
 
-      <AuthForm mode="sign-in" action={signIn} submitLabel="Sign in" />
+      <AuthForm mode="sign-in" action={signIn} submitLabel="Return" />
 
       <p className="text-stone text-sm">
         New here?{' '}
         <Link href="/sign-up" className="text-paper hover:underline underline-offset-4">
-          Begin the path
+          Cross the threshold
         </Link>
       </p>
     </div>
