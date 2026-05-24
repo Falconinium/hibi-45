@@ -186,6 +186,50 @@ export async function resetProgram(): Promise<void> {
 }
 
 /**
+ * Sign the engagement contract — invoked from the ContractGate that
+ * /today shows on first visit when programs.signed_at IS NULL.
+ *
+ * Idempotent: a second click does nothing (only updates rows where
+ * signed_at is still null). The pixels of the user's drawing are
+ * never sent to the server — only the moment of the gesture lands
+ * here, recorded server-side at NOW().
+ */
+export async function signContract(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Re-anchor started_on to the user's local "today" at signing time.
+  // Otherwise a user who signed up at 23:50 and signed at 00:10 would
+  // already see expectedDay=2 on first load and get falsely reset.
+  // Day 1 begins when the signature lands, not when the account was made.
+  const { data: program } = await supabase
+    .from('programs')
+    .select('timezone, signed_at')
+    .eq('user_id', user.id)
+    .single();
+  if (!program || program.signed_at !== null) {
+    revalidatePath('/today');
+    return;
+  }
+
+  const newStartedOn = localTodayISO(new Date(), program.timezone);
+
+  await supabase
+    .from('programs')
+    .update({
+      signed_at: new Date().toISOString(),
+      started_on: newStartedOn,
+    })
+    .eq('user_id', user.id)
+    .is('signed_at', null);
+
+  revalidatePath('/today');
+}
+
+/**
  * Dismiss the post-reset notice. We track "seen" via a cookie rather than
  * a DB column — the notice is purely UI sugar, not auditable state.
  */

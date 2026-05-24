@@ -1,7 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { AuthForm } from '@/components/auth-form';
-import { ContractStep } from './contract-step';
 import { signUp } from '../actions';
 import { acknowledgeVow } from './actions';
 
@@ -10,31 +9,29 @@ export const metadata = {
 };
 
 /**
- * Sign-up is a three-step ritual:
+ * Sign-up is a two-step ritual:
  *
  *   Step 1 — The Vow (誓い):
  *     The visitor reads the engagement. No form yet. Button: "I have
  *     read the vow" sets hibi_vow_read cookie (365d).
  *
- *   Step 2 — The Contract (盟約):
- *     A short engagement contract + a signature pad. The visitor draws
- *     a signature with their finger / pointer. We do NOT store the
- *     drawing — only the timestamp of when they signed. Button:
- *     "Sign and step inside" sets hibi_signed_at cookie (7d, ISO).
+ *   Step 2 — The Form:
+ *     Email + password + tz. The account is created here.
  *
- *   Step 3 — The Form:
- *     Email + password + tz. On submit, signUp() reads hibi_signed_at
- *     from the cookie and inserts it into programs.signed_at.
+ * The engagement contract (with the finger signature) is shown AFTER
+ * sign-up, gating /today on first visit. Logic lives in
+ * app/(app)/today/page.tsx — it checks programs.signed_at and shows
+ * the contract gate if NULL, the dashboard otherwise.
  *
- * Returning visitors with both cookies land directly on step 3.
+ * Why post-signup: it places the signature right before day 1, makes
+ * it feel like a proper rite of entry into the path, and avoids the
+ * fragile cookie-passthrough of an unauthenticated user.
  */
 export default async function SignUpPage() {
   const c = await cookies();
   const vowRead = c.get('hibi_vow_read')?.value === '1';
-  const hasSigned = !!c.get('hibi_signed_at')?.value;
 
   if (!vowRead) return <Vow />;
-  if (!hasSigned) return <ContractStep />;
   return <Form />;
 }
 
@@ -88,8 +85,8 @@ function Form() {
         <p className="font-jp text-stone text-xs tracking-[0.3em]">入門</p>
         <h1 className="font-serif text-3xl text-paper">Step inside.</h1>
         <p className="text-stone text-sm">
-          The vow is read, the contract is signed. Tonight we walk the first
-          evening together.
+          The vow is read. Create your account, and we will sign the contract
+          together on the other side.
         </p>
       </header>
 
