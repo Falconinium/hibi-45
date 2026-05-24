@@ -9,12 +9,14 @@ import { ChallengeList } from '@/components/challenge-list';
 import { CompletionCard } from '@/components/completion-card';
 import { Countdown } from '@/components/countdown';
 import { DayHeader } from '@/components/day-header';
+import { ContractGate } from '@/components/contract-gate';
 import { Proverb } from '@/components/proverb';
 import { ResetCard } from '@/components/reset-card';
 import {
   acknowledgeDay,
   dismissResetNotice,
   resetProgram,
+  signContract,
   signOut,
   toggleChallenge,
 } from './actions';
@@ -29,11 +31,16 @@ const MILESTONE_DAYS = new Set([7, 14, 21, 28, 35, 40, 45]);
  * The single post-auth page. Server-rendered top to bottom.
  *
  * Order of operations (CLAUDE.md §6 / §7):
- *   1. Read auth, check for program row (layout already ensured this).
- *   2. reconcileForUser() — handles midnight crossings, advances or resets.
- *   3. Re-read program. If just reset → render ResetCard (once).
- *   4. If status === 'completed' → 完 forever.
- *   5. Otherwise render the dashboard for the current day.
+ *   1. Read auth.
+ *   2. Read programs. If signed_at IS NULL → ContractGate (the user
+ *      hasn't signed the engagement contract yet). NO reconcile runs
+ *      in this branch — an unsigned program is in suspended state and
+ *      must not be advanced or reset by the time the user takes to
+ *      sign.
+ *   3. reconcileForUser() — handles midnight crossings, advances or resets.
+ *   4. Re-read program. If just reset → render ResetCard (once).
+ *   5. If status === 'completed' → 完 forever.
+ *   6. Otherwise render the dashboard for the current day.
  *
  * No client state library. The only client islands are <ChallengeList>
  * (optimistic toggle) and <Countdown> (re-renders every minute).
@@ -44,6 +51,20 @@ export default async function TodayPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/sign-in');
+
+  // Read the program *before* reconciling. If the user hasn't signed yet,
+  // we don't want a passage past midnight to reset their not-yet-started
+  // program — the contract must come first.
+  const { data: preRow, error: preErr } = await supabase
+    .from('programs')
+    .select('signed_at')
+    .eq('user_id', user.id)
+    .single();
+  if (preErr || !preRow) redirect('/sign-in');
+
+  if (preRow.signed_at === null) {
+    return <ContractGate sign={signContract} />;
+  }
 
   const decision = await reconcileForUser(supabase, user.id);
 

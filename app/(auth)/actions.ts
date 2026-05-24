@@ -1,6 +1,5 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -87,28 +86,18 @@ export async function signUp(_prev: ActionResult, formData: FormData): Promise<A
     redirect('/sign-in?check_email=1');
   }
 
-  // Pull the signed-at moment captured at the contract step. If absent
-  // (user somehow reached this action without signing — only possible if
-  // they tampered with cookies), we still create the account but leave
-  // signed_at NULL; the dashboard can flag the row later.
-  const c = await cookies();
-  const signedAtRaw = c.get('hibi_signed_at')?.value;
-  const signedAt =
-    signedAtRaw && !Number.isNaN(Date.parse(signedAtRaw)) ? signedAtRaw : null;
-
   // Create the program in the user's local timezone. started_on is the user's
   // local date *now*, so day 1 is the day they signed up — not whatever date
   // the server's clock happens to read.
+  //
+  // signed_at is left NULL on purpose — the user will sign the engagement
+  // contract on the next /today visit (gated server-side until signed).
   const startedOn = localTodayISO(new Date(), timezone);
   const { error: progErr } = await supabase.from('programs').insert({
     user_id: data.user.id,
     started_on: startedOn,
     timezone,
-    signed_at: signedAt,
   });
-
-  // Clear the transient signature cookie once consumed.
-  c.set('hibi_signed_at', '', { maxAge: 0, path: '/' });
   if (progErr) {
     // Non-fatal: the /today page will retry the bootstrap. Surface a quiet
     // hint in case the user wonders what happened.
