@@ -12,7 +12,11 @@ export const config = {
      *  - _next/static, _next/image (Next internals)
      *  - favicon.ico, robots.txt, sitemap.xml, *.svg|png|jpg|jpeg|gif|webp|ico
      *  - /api/cron/* (cron route uses its own CRON_SECRET, no user session)
+     *  - /opengraph-image, /icon, /apple-icon, /manifest.webmanifest
+     *    (Next 15 metadata file routes — scrapers like X / iMessage / Slack
+     *    must reach these without an auth redirect; previously they hit
+     *    middleware → 307 → /sign-in and unfurls came back blank)
      */
-    '/((?!_next/static|_next/image|api/cron|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    '/((?!_next/static|_next/image|api/cron|opengraph-image|icon|apple-icon|manifest\\.webmanifest|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };
