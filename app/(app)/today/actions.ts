@@ -201,10 +201,19 @@ export async function signContract(): Promise<void> {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  // Re-anchor started_on to the user's local "today" at signing time.
-  // Otherwise a user who signed up at 23:50 and signed at 00:10 would
-  // already see expectedDay=2 on first load and get falsely reset.
-  // Day 1 begins when the signature lands, not when the account was made.
+  // Signing the contract = the real Day 1. We wipe whatever state the
+  // account had (which only matters for legacy accounts that existed
+  // before the contract was introduced — they could be mid-program when
+  // signed_at became NULL across the migration). Specifically:
+  //   - started_on  → user's local today (Day 1 begins now)
+  //   - current_day → 1
+  //   - last_completed_day → 0
+  //   - completions → all deleted for this user
+  // Without the current_day reset, a user who was on Day 3 when the
+  // contract was added would see started_on=today + current_day=3,
+  // which gives expectedDay=1 forever (clock-skew branch) and no
+  // amount of midnights would advance the program — exactly the bug
+  // reported on the test account.
   const { data: program } = await supabase
     .from('programs')
     .select('timezone, signed_at')
@@ -217,11 +226,18 @@ export async function signContract(): Promise<void> {
 
   const newStartedOn = localTodayISO(new Date(), program.timezone);
 
+  // Wipe any leftover completions from a pre-contract state. Same
+  // rationale as the reset path in applyReconciliation.
+  await supabase.from('completions').delete().eq('user_id', user.id);
+
   await supabase
     .from('programs')
     .update({
       signed_at: new Date().toISOString(),
       started_on: newStartedOn,
+      current_day: 1,
+      last_completed_day: 0,
+      status: 'active',
     })
     .eq('user_id', user.id)
     .is('signed_at', null);
