@@ -358,3 +358,26 @@ Every string in the UI should sound like it was written by someone who reads qui
 - Empty states: `Nothing yet. The day is open.`
 - Errors: `That didn't work. Try once more.` (no error codes, no exclamation marks)
 - The proverbs and the completion card carry the warmth — the rest of the UI stays quiet.
+
+## Git workflow (mandatory)
+
+Every change goes through a branch and a Pull Request. **Never commit directly to `main`.**
+
+1. **Start from an up-to-date `main`**: `git switch main && git pull --ff-only`
+2. **Create a branch** `<type>/<short-description>` in kebab-case.
+   Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `ci`. E.g. `feat/stripe-checkout`, `fix/login-redirect`.
+3. **Atomic commits** following [Conventional Commits](https://www.conventionalcommits.org/): `<type>(<scope>): <imperative summary>`
+   E.g. `feat(cart): add quantity selector`, `fix(auth): handle expired session`.
+   One commit = one logical change. Never `wip`, `update`, `fix stuff`, `.`.
+4. **Verify before pushing**: lint, typecheck, tests and build pass locally.
+5. **Push the branch**: `git push -u origin <branch>`
+6. **Open the PR**: `gh pr create --base main` — Conventional Commits title, body following `.github/pull_request_template.md` (context, changes, how to test, screenshots for UI). Link the issue if any (`Closes #12`).
+7. **Review** the full diff and wait for green CI. Keep PRs small and focused (< 400 lines ideally).
+8. **Squash merge**: `gh pr merge --squash --delete-branch`, then `git switch main && git pull --ff-only`.
+
+Rules:
+- One PR = one topic. Unrelated refactors go in a separate PR.
+- Never `push --force` to `main`; `--force-with-lease` only on your own branch.
+- No secrets committed (`.env*` in `.gitignore`).
+- Claude creates the branch, commits and PR, then **asks for approval before merging** (unless explicitly told otherwise).
+- If the project has no GitHub remote yet: `gh repo create` before the first PR.
